@@ -4,7 +4,7 @@
 #define MAZEWIDTH 20
 #define MAZELENGTH 20
 #define SCREENLENGTH 800
-#define SCREENWIDTH 800                                                                                                                                                                                                                                                                    
+#define SCREENWIDTH 700                                                                                                                                                                                                                                                                    
 #define BRICKLENGTH 25
 #define BRICKWIDTH 25
 #define INITIALMAZEX 120
@@ -14,11 +14,12 @@ int mazeChanger=13;
 char pacMan[2][20]={"pacforward\\pac0.bmp","pacforward\\pac5.bmp"};
 float x = 700, y = 100, r = 10;
 int pacMan_X=INITIALMAZEX-BRICKLENGTH/2, pacMan_Y=INITIALMAZEY-BRICKWIDTH/2,pacManIndex=0;
-int value = 20;
+int score = 0;
 struct maze{
 	int bit[MAZEWIDTH];
 	int cordinateX[MAZEWIDTH];
 	int cordinateY[MAZEWIDTH];
+	bool eaten[MAZEWIDTH];
 };
  maze mazeline[MAZELENGTH];
 bool pacCollition=false;
@@ -35,11 +36,11 @@ void iDraw()
 	for(int i=0;i<MAZELENGTH;i++){
 		for(int j=0;j<MAZEWIDTH;j++){
 			if(mazeline[i].bit[j]==1){
-				iRectangle(i*BRICKLENGTH+INITIALMAZEX,j*BRICKWIDTH+INITIALMAZEY,BRICKLENGTH,BRICKWIDTH);
+				iRectangle(i*BRICKLENGTH+INITIALMAZEX,j*BRICKWIDTH+INITIALMAZEY,BRICKLENGTH-7,BRICKWIDTH-7);
 			}
 			
-			else{
-				//iPoint(i*BRICKLENGTH+INITIALMAZEX+(BRICKLENGTH/2.5),j*BRICKWIDTH+INITIALMAZEY+(BRICKWIDTH/2.5),1.8);
+			else if( mazeline[i].bit[j]==0 && !mazeline[i].eaten[j]){
+				iPoint(i*BRICKLENGTH+INITIALMAZEX+(BRICKLENGTH/2.5),j*BRICKWIDTH+INITIALMAZEY+(BRICKWIDTH/2.5),2.3);
 			} 
 		}
 	 }
@@ -66,7 +67,7 @@ void iDraw()
 	
 
 	if (pacMan_X <= x + 1 && pacMan_Y <= y + 1 && pacMan_X >= x - 1 && pacMan_Y >= y - 1){
-		iText(10, 10, "GAME OVER");
+		iText(50, 50, "GAME OVER");
 	}
 }
 
@@ -105,30 +106,38 @@ void iMouse(int button, int state, int mx, int my)
 
 /*
 	function iKeyboard() is called whenever the user hits a key in keyboard.
-	key- holds the ASCII value of the key pressed.
+	key- holds the ASCIt score of the key pressed.
 	*/
 void iKeyboard(unsigned char key)
 { {
 	if (key == 'q')
 	{
-		exit(0);
-	}
-	if (key == 'a')
-	{
-		pacMan_X -= 5;
-	}
-	if (key == 's')
-	{
-		pacMan_Y -= 5;
-	}
-	if (key == 'd')
-	{
-		pacMan_X += 5;
-	}
-	if (key == 'w')
-	{
-		pacMan_Y += 5;
-	}
+	//	exit(0);
+	} int nextX = pacMan_X;
+    int nextY = pacMan_Y;
+
+    if (key == 'a') {
+        nextX -= 5;
+    }
+    else if (key == 's') {
+        nextY -= 5;
+    }
+    else if (key == 'd') {
+        nextX += 5;
+    }
+    else if (key == 'w') {
+        nextY += 5;
+    }
+
+    // Calculate the grid cell that Pac-Man will move into
+    int i = (nextX - INITIALMAZEX + BRICKLENGTH / 2) / BRICKLENGTH;
+    int j = (nextY - INITIALMAZEY + BRICKWIDTH / 2) / BRICKWIDTH;
+
+    // Only update Pac-Man's position if the next position is not a wall
+    if (mazeline[i].bit[j] != 1) {
+        pacMan_X = nextX;
+        pacMan_Y = nextY;
+    }
 	if(key == 'c'){
 		mazeChanger++;
 	}
@@ -155,28 +164,32 @@ void iSpecialKeyboard(unsigned char key)
 	}
 	// place your codes for other keys here
 }
-void collision(){
-	int i,j;
-	j=(pacMan_X-INITIALMAZEX)/BRICKLENGTH;
-	i=(pacMan_Y-INITIALMAZEY)/BRICKWIDTH;
-	if(j<0){
-		pacMan_X=(MAZELENGTH)*BRICKLENGTH+INITIALMAZEX;
-	}
-	else if(j>MAZELENGTH-1){
-		pacMan_X=INITIALMAZEX-BRICKLENGTH+5;
-	}
-	if(i<0){
-		pacMan_Y=(MAZEWIDTH)*BRICKWIDTH+INITIALMAZEY;
-	}
-	else if(i>MAZEWIDTH-1){
-		pacMan_Y=INITIALMAZEY-BRICKWIDTH+5;
-	}
-	// if(mazeline[i+1].bit[j]==1){
-	// 	pacMan_Y=mazeline[i].cordinateX[j];
-	// 	pacMan_X=mazeline[i].cordinateY[j];
-	// }
-	printf("%d   %d\n",i,j);
+void collision() {
+    int i = (pacMan_X - INITIALMAZEX) / BRICKLENGTH;
+    int j = (pacMan_Y - INITIALMAZEY) / BRICKWIDTH;
 
+    // Check for out-of-bounds and wrap around
+    if (i < 0) {
+        pacMan_X = (MAZELENGTH) * BRICKLENGTH + INITIALMAZEX - 5;
+    } else if (i > MAZELENGTH - 1) {
+        pacMan_X = INITIALMAZEX - BRICKLENGTH + 5;
+    }
+    if (j < 0) {
+        pacMan_Y = (MAZEWIDTH) * BRICKWIDTH + INITIALMAZEY - 5;
+    } else if (j > MAZEWIDTH - 1) {
+        pacMan_Y = INITIALMAZEY - BRICKWIDTH + 5;
+    }
+	if(mazeline[i].bit[j]==0){
+		mazeline[i].eaten[j]=true;
+		score++;
+		printf("score=%d\n",score);
+	}
+    // Check for collision with a wall
+    // if (mazeline[i].bit[j] == 1) {
+    //     // If a collision is detected, move Pac-Man back to its previous position
+    //     pacMan_X -= (pacMan_X - INITIALMAZEX) % BRICKLENGTH;
+    //     pacMan_Y -= (pacMan_Y - INITIALMAZEY) % BRICKWIDTH;
+    // }
 }
 void mazeRead(int *a,int *b,int *c,int *d,int *e){
 	int counter=0;
